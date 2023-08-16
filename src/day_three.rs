@@ -1,30 +1,41 @@
 use std::{
     fs,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader}, collections::HashSet,
 };
 
 #[derive(Debug)]
+struct Ruckgroup(Rucksack, Rucksack, Rucksack);
+
+#[derive(Debug)]
 struct Rucksack {
-    pocket_a: Vec<char>,
-    pocket_b: Vec<char>,
+    chars: HashSet<char>
 }
 
 impl Rucksack {
     fn try_build(input: &str) -> Self {
-        let half = input.len() / 2;
-
         Rucksack {
-            pocket_a: (&input[0..half]).chars().collect(),
-            pocket_b: (&input[half..]).chars().collect(),
+            chars: HashSet::from_iter(input.chars()),
         }
     }
+}
 
-    fn find_repeated_item(&self) -> &char {
-        self.pocket_a.iter().find(|c| self.pocket_b.contains(*c)).unwrap()
+impl Ruckgroup {
+    fn from_vec(v: &mut Vec<Rucksack>) -> Self {
+        if v.len() != 3 {
+            panic!("Ruckgroup size must be 3!")
+        }
+
+        Ruckgroup(v.pop().unwrap(), v.pop().unwrap(), v.pop().unwrap())
     }
 
-    fn calculate_priority(&self) -> u32 {
-        let c = self.find_repeated_item();
+    fn find_badge(&self) -> &char {
+        self.0.chars.iter()
+            .find(|&c| self.1.chars.contains(c) && self.2.chars.contains(c))
+            .unwrap()
+    }
+
+    fn calculate_badge_priority(&self) -> u32 {
+        let c = self.find_badge();
 
         if c.is_uppercase() {
             return (*c as u32) - 38;
@@ -36,14 +47,25 @@ impl Rucksack {
 
 pub fn solve() {
     let file = fs::File::open("inputs/day_three.txt").expect("file should exist");
-    let buffer = BufReader::new(file);
+    let mut lines = BufReader::new(file).lines();
 
-    let total_priority: u32 = buffer.lines()
-        .map(|line| {
-            let rucksack = Rucksack::try_build(line.unwrap().as_str());
+    let mut counter = 0;
+    let mut badges = vec![];
+    let mut group = vec![];
 
-            rucksack.calculate_priority()
-        }).sum();
+    while let Some(line) = lines.next() {
+        counter += 1;
+        let line = line.unwrap();
 
-    println!("DAY 3 ANSWER: {total_priority}");
+        group.push(Rucksack::try_build(&line));
+
+        if counter % 3 == 0 {
+            let ruckgroup = Ruckgroup::from_vec(&mut group);
+
+            badges.push(ruckgroup.calculate_badge_priority());
+            group.clear();
+        }
+    }
+
+    println!("DAY 3 PART TWO: {}", badges.into_iter().sum::<u32>())
 }
