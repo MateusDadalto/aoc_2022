@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{fmt::Display, collections::VecDeque};
 
 use crate::helper;
 
@@ -127,13 +127,13 @@ fn parse_crates(line: &str) -> Vec<Crate> {
 
 fn move_crates(move_cmd: MoveCmd, stacks: &mut Vec<CrateStack>) {
     let from = stacks.iter_mut().find(|stack| stack.label == move_cmd.from).unwrap();
-    let mut crates_to_move = vec![];
+    let mut crates_to_move = VecDeque::new();
     for _ in 0..move_cmd.crates_to_move {
-        crates_to_move.push(from.crates.pop().unwrap());
+        crates_to_move.push_front(from.crates.pop().unwrap());
     }
 
     let to = stacks.iter_mut().find(|stack| stack.label == move_cmd.to).unwrap();
-    to.crates.append(&mut crates_to_move);
+    to.crates.append(&mut crates_to_move.into_iter().collect());
 }
 
 fn draw_board(stacks: &Vec<CrateStack>) {
