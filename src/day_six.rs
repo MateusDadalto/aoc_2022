@@ -64,9 +64,17 @@ where
 pub fn solve() {
     let datastream = fs::read_to_string("inputs/day_six.txt").unwrap();
     let mut char_iter = datastream.chars().enumerate();
-    // start of packet buffer
-    let mut sop_buffer: RingBuffer<char> = RingBuffer::new(4);
-    let mut sop_char_count: Counter<char> = Counter::with_capacity(4);
+    // start of packet
+    find_marker(4, &mut char_iter);
+
+    // start of message
+    find_marker(14, &mut char_iter);
+
+}
+
+fn find_marker(size: usize, char_iter: &mut impl Iterator<Item = (usize, char)>) -> Option<(usize, char)> {
+    let mut sop_buffer: RingBuffer<char> = RingBuffer::new(size);
+    let mut sop_char_count: Counter<char> = Counter::with_capacity(size);
     
     // find message beginning
     while let Some((i,c)) = char_iter.next() {
@@ -75,10 +83,12 @@ pub fn solve() {
         if let Some(popped) = sop_buffer.push(c.clone()) {
             sop_char_count.subtract(popped);
 
-            if sop_char_count.keys().len() == 4 {
-                println!("Day 4 Part 1: char {} at index {}", c, i+1);
-                break;
+            if sop_char_count.keys().len() == size {
+                println!("Marker found after char {} at index {}", c, i+1);
+                return Some((i, c));
             }
         }
     }
+
+    None
 }
