@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, ops::Range, iter::Rev};
 
 use crate::helper;
 
@@ -12,6 +12,82 @@ struct Tree {
     col: usize,
 }
 
+impl Tree {
+    
+    fn get_view(&self, grid: &Grid) -> Vec<Vec<(usize, usize)>> {
+        let mut all_view = vec![];
+
+        all_view.push(self.get_view_horizontal(grid, self.left_view(grid).0, self.left_view(grid).1));
+        all_view.push(self.get_view_horizontal(grid, self.right_view(grid).0, self.right_view(grid).1));
+        all_view.push(self.get_view_vertical(grid, self.top_view(grid).0, self.top_view(grid).1));
+        all_view.push(self.get_view_vertical(grid, self.bottom_view(grid).0, self.bottom_view(grid).1));
+
+        all_view
+    }
+
+    fn left_view(&self, _grid: &Grid) -> (usize, Rev<Range<usize>>)
+    {
+        (self.line, (0..self.col).rev())
+    }
+
+    fn right_view(&self, grid: &Grid) -> (usize, Range<usize>) {
+        (self.line, self.col+1..grid.cols())
+    }
+
+    fn top_view(&self, _grid: &Grid) -> (Rev<Range<usize>>, usize) {
+        ((0..self.line).rev(), self.col)
+    }
+
+    fn bottom_view(&self, grid: &Grid) -> (Range<usize>, usize) {
+        (self.line+1..grid.lines(), self.col)
+    }
+
+    fn get_view_horizontal<T>(&self, grid: &Grid, line: usize, cols: T) -> Vec<(usize, usize)>
+    where
+        T: Iterator<Item = usize>
+    {
+        let mut visible_trees = vec![];
+
+        for col in cols {
+            let tree = &grid.values[line][col];
+            visible_trees.push(tree.position());
+
+            if tree.height >= self.height {
+                break;
+            }
+        }
+
+        visible_trees
+    }
+
+    fn get_view_vertical<T>(&self, grid: &Grid, lines: T, col: usize) -> Vec<(usize, usize)>
+    where
+        T: Iterator<Item = usize>
+    {
+        let mut visible_trees = vec![];
+
+        for line in lines {
+            let tree = &grid.values[line][col];
+            visible_trees.push(tree.position());
+            
+            if tree.height >= self.height {
+                break;
+            }
+        }
+
+        visible_trees
+    }
+
+    fn get_scenic_score(&self, grid: &Grid) -> usize {
+        let all_visible = self.get_view(grid);
+
+        all_visible.iter()
+            .map(|direction| direction.len())
+            .reduce(|acc, e| acc*e)
+            .unwrap_or(1)
+    }
+}
+
 impl Grid {
     fn lines(&self) -> usize {
         self.values.len()
@@ -19,6 +95,10 @@ impl Grid {
 
     fn cols(&self) -> usize {
         self.values.get(0).map_or(0, |col| col.len())
+    }
+
+    fn scenic_score(&self, tree: &Tree) {
+           
     }
 
     fn visible(&self) -> HashSet<(usize, usize)> {
@@ -125,13 +205,28 @@ pub fn solve() {
         grid.values.push(columns);
     }
     let visible_trees = grid.visible();
-
+    
     println!("Day 8 part 1: {}", visible_trees.len());
 
-    _draw_grid(&grid, &visible_trees);
+    let mut max_scenic_score = 0;
+    let mut best_tree: &Tree = &Tree { height: 0, line: 0, col: 0 };
+
+    for tree in grid.values.iter().flatten() {
+        let score = tree.get_scenic_score(&grid);
+
+        if max_scenic_score < score {
+            max_scenic_score = score;
+            best_tree = tree;
+        }
+    }
+
+    println!("Day 8 part 2: {max_scenic_score}");
+    _draw_grid(&grid, best_tree);
 }
 
-fn _draw_grid(grid: &Grid, visible_trees: &HashSet<(usize, usize)>) {
+fn _draw_grid(grid: &Grid, best_tree: &Tree) {
+    let visible_trees: Vec<(usize, usize)> = best_tree.get_view(grid).into_iter().flatten().collect();
+
     for l in grid.values.iter() {
         let mut line = String::new();
 
