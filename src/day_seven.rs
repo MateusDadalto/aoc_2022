@@ -132,6 +132,8 @@ impl Command {
 }
 
 pub fn solve() {
+    let total_space = 70_000_000;
+    let free_space_req = 30_000_000;
     let mut lines = helper::get_file_lines_iter("inputs/day_seven.txt");
 
     let base_dir = Rc::new(RefCell::new(Dir::new("/".to_string())));
@@ -154,16 +156,15 @@ pub fn solve() {
         }
     }
 
-    let mut all_children = base_dir.borrow().get_all_children(); 
-    all_children.sort();
+    let all_children = base_dir.borrow().get_all_children();
+    let space_needed = free_space_req - (total_space - base_dir.borrow().size);
 
-    let small_dir_sum = base_dir.borrow().get_all_children()
-        .into_iter()
-        .filter(|dir| dir.borrow().size <= 100_000)
-        .map(|d| d.borrow().size)
-        .sum::<u32>();
+    let mut big_dirs: Vec<_> = all_children.iter().filter(|dir| dir.borrow().size >= space_needed).collect();
 
-    println!("Day 7 part 1: {:?}", small_dir_sum)
+    big_dirs.sort();
+
+    println!("Space needed: {space_needed}");
+    println!("Day 7 part 2: {:?}", big_dirs.first().unwrap().borrow().size);
 }
 
 fn move_dir(path: Path, current_dir: Ref<'_, Dir>, base_dir: DirRefMut) -> DirRefMut {
