@@ -21,6 +21,38 @@ impl Direction {
     }
 }
 
+struct Rope {
+    knots: Vec<Knot>,
+}
+
+impl Rope {
+    fn new(size: usize) -> Self {
+        Rope {
+            knots: vec![Knot {position: Position { x: 0, y: 0 }}; size],
+        } 
+    }
+
+    fn apply_motion(&mut self, direction: &Direction) -> Position {
+        self.move_head(direction);
+
+        let moved_tail = self.knots.iter_mut().reduce(|prev_knot, knot| {
+            knot.follow_head(&prev_knot);
+
+            knot
+        });
+
+        moved_tail.unwrap().position
+    }
+
+    fn get_tail(&self) -> &Knot {
+        self.knots.last().unwrap()
+    }
+
+    fn move_head(&mut self, direction: &Direction) {
+        self.knots[0].apply_motion(direction);
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 struct Position {
     x: i32,
@@ -46,6 +78,7 @@ impl std::ops::Sub for Position{
     }
 }
 
+#[derive(Clone)]
 struct Knot {
     position: Position
 }
@@ -78,11 +111,10 @@ impl Knot {
 
 pub fn solve() {
     let lines = helper::get_file_lines_iter("inputs/input.txt");
-    let mut head = Knot {position: Position { x: 0, y: 0 }};
-    let mut tail =  Knot {position: Position { x: 0, y: 0 }};
+    let mut rope = Rope::new(10);
 
     let mut positions = HashSet::new();
-    positions.insert(tail.position);
+    positions.insert(rope.get_tail().position);
 
     for line in lines {
         let instructions: Vec<String> = line.unwrap().split_whitespace().map(|s| s.to_owned()).collect();
@@ -90,10 +122,8 @@ pub fn solve() {
         let n = instructions[1].parse::<u32>().unwrap();
 
         for _ in 0..n {
-            head.apply_motion(&direction);
-
-            tail.follow_head(&head);
-            positions.insert(tail.position);
+            let tail_position = rope.apply_motion(&direction);
+            positions.insert(tail_position);
         }
     }
 
