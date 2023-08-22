@@ -53,6 +53,10 @@ impl Cpu {
     fn signal_strength(&self) -> i32 {
         self.during * (self.cycle as i32)
     }
+
+    fn should_draw_pixel(&self, col: usize) -> bool {
+        (col as i32).abs_diff(self.during) <= 1
+    }
 }
 
 pub fn solve() {
@@ -73,4 +77,25 @@ pub fn solve() {
     }
     
     println!("Day 10 part 1: {}", answer);
+
+    draw_crt(states)
+}
+
+fn draw_crt(states: Vec<Cpu>) {
+    let n_lines = states.len()/4;
+    let states = &states[1..]; // initial state is meaningless
+    let width = 40;
+    for line in 0..n_lines {
+        let mut line_drawing = String::new();
+        for position in 0..width {
+            let cycle = states.get(line*width + position).expect("Should have a cycle for each pixel");
+
+            match cycle.should_draw_pixel(position) {
+                true => line_drawing = line_drawing + "# ",
+                false => line_drawing = line_drawing + ". ",
+            }
+        }
+
+        println!("{line_drawing}");
+    }
 }
