@@ -4,14 +4,14 @@ mod helper;
 
 struct ThrowCmd {
     monkey_id: usize,
-    item: u32
+    item: u64
 }
 
 struct Monkey {
-    items: VecDeque<u32>,
-    operation: Box<dyn Fn(u32) -> u32>,
-    test: Box<dyn Fn(u32) -> usize>,
-    inspections: u32,
+    items: VecDeque<u64>,
+    operation: Box<dyn Fn(u64) -> u64>,
+    test: Box<dyn Fn(u64) -> usize>,
+    inspections: u64,
 }
 
 impl Debug for Monkey {
@@ -24,10 +24,10 @@ impl Debug for Monkey {
 }
 
 impl Monkey {
-    fn new<T, U>(items: VecDeque<u32>, operation: T, test: U) -> Self
+    fn new<T, U>(items: VecDeque<u64>, operation: T, test: U) -> Self
     where
-        T: Fn(u32) -> u32 + 'static,
-        U: Fn(u32) -> usize + 'static,
+        T: Fn(u64) -> u64 + 'static,
+        U: Fn(u64) -> usize + 'static,
     {
         Monkey {
             items,
@@ -40,7 +40,8 @@ impl Monkey {
     fn throw_item(&mut self) -> Option<ThrowCmd> {
 
         self.items.pop_front().map(|item| {
-            let item = (self.operation)(item)/3;
+            let super_modulo = 2*3*5*7*11*13*17*19; // module arithmetics, don't ask me about it
+            let item = (self.operation)(item)%super_modulo;
             self.inspections += 1;
             
             let monkey_id = (self.test)(item);
@@ -49,7 +50,7 @@ impl Monkey {
         })
     }
 
-    fn receive_item(&mut self, item: u32) {
+    fn receive_item(&mut self, item: u64) {
         self.items.push_back(item);
     }
 }
@@ -57,7 +58,7 @@ impl Monkey {
 pub fn solve() {
     let mut monkeys = get_monkeys();
 
-    for _ in 0..20 {
+    for _ in 0..10_000 {
         monkeys = play_round(monkeys);
     }
 
