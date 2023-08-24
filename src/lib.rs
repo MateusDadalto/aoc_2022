@@ -1,4 +1,4 @@
-use std::{cell::RefCell, fmt::Debug, rc::Rc};
+use std::{cell::RefCell, fmt::Debug, rc::Rc, collections::HashSet, hash::{Hash, Hasher}};
 
 mod helper;
 
@@ -64,7 +64,9 @@ impl Grid {
             .map(|node| Rc::clone(node))
     }
 }
+
 struct Node {
+    id: (usize, usize),
     height: u8,
     connection: Vec<NodeRef>,
     is_starting: bool,
@@ -72,9 +74,22 @@ struct Node {
     distance: u32,
 }
 
+impl PartialEq for Node {
+    fn eq(&self, other: &Self) -> bool {
+        self.id == other.id
+    }
+}
+
+impl Hash for Node {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.id.hash(state);
+    }
+}
+
 impl Debug for Node {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("Node")
+            .field("id", &self.id)
             .field("value", &self.height)
             .field("connection", &self.connection.iter().map(|n| n.borrow().get_node_char()).collect::<Vec<_>>())
             .field("is_starting", &self.is_starting)
@@ -85,8 +100,9 @@ impl Debug for Node {
 }
 
 impl Node {
-    fn new(c: char) -> Self {
+    fn new(c: char, line: usize, col: usize) -> Self {
         Node {
+            id: (line, col),
             height: Node::build_node_value(c.clone()),
             connection: vec![],
             is_starting: c.eq(&STARTING_CHAR),
@@ -129,10 +145,12 @@ impl Node {
 pub fn solve() {
     let grid: Grid = Grid(
         helper::get_file_lines_iter("inputs/input.txt")
-            .map(|l| {
+            .enumerate()
+            .map(|(i, l)| {
                 l.unwrap()
                     .chars()
-                    .map(|c| Rc::new(RefCell::new(Node::new(c))))
+                    .enumerate()
+                    .map(|(c_i, c)| Rc::new(RefCell::new(Node::new(c, i, c_i))))
                     .collect()
             })
             .collect(),
@@ -140,6 +158,50 @@ pub fn solve() {
 
     grid.link_nodes();
 
-    dbg!(grid.get_starting_node());
-    dbg!(grid.get_ending_node());
+    let path:u32 = find_shortest_path(&grid, grid.get_starting_node().unwrap(), grid.get_ending_node().unwrap());
+    
+    println!("{path}")
+}
+
+fn find_shortest_path(grid: &Grid, starting_node: NodeRef, ending_node: NodeRef) -> u32 {
+    let mut unvisited = HashSet::new();
+    unvisited.extend(grid.0.iter().flatten().map(|node_ref| node_ref.borrow().id.clone()));
+
+    let mut current_node = Rc::clone(&starting_node);
+
+    while current_node.borrow().id != ending_node.borrow().id {
+        let mut min_distance: u32 = u32::MAX;
+        let distance = current_node.borrow().distance + 1;
+        
+        for neighbor in current_node.borrow().connection.iter() {
+            if unvisited.contains(&neighbor.borrow().id) {
+
+                if distance < neighbor.borrow().distance {
+                    neighbor.borrow_mut().distance = distance;
+                }
+
+                if min_distance > neighbor.borrow().distance {
+                    min_distance = neighbor.borrow().distance;
+                }
+            }
+
+        }
+
+        let next = Rc::clone(
+            if let Some(node) = current_node.borrow().connection.iter()
+                .find(|node| node.borrow().distance == min_distance && !unvisited.contains(&node.borrow().id)) {
+                    node
+                } else {
+                    unvisited
+                        .iter()
+                        .filter_map(|&(line, col)| grid.0.get(line).and_then(|row| row.get(col)))
+                        .find(|node_ref| node_ref.borrow().distance < u32::MAX)
+                        .unwrap_or(&ending_node)
+                }
+            );
+
+        current_node = next;
+    }
+    
+    ending_node.borrow().distance
 }
