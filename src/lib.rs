@@ -1,207 +1,187 @@
-use std::{cell::RefCell, fmt::Debug, rc::Rc, collections::HashSet, hash::{Hash, Hasher}};
+use std::{fmt::{Display, Debug}, collections::HashSet, hash::Hash, f32::consts::E};
 
 mod helper;
 
-const STARTING_CHAR: char = 'S';
-const ENDING_CHAR: char = 'E';
+#[derive(Clone, Copy)]
+enum Step {
+    Start,
+    End,
+    Middle(u8)
+}
 
-type NodeRef = Rc<RefCell<Node>>;
-struct Grid(Vec<Vec<NodeRef>>);
+
+impl Display for Step {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Step::Start => f.write_str("S"),
+            Step::End => f.write_str("E"),
+            Step::Middle(x) => f.write_str(((x + b'a') as char).to_string().as_str()),
+        }
+    }
+}
+
+impl Step {
+    fn parse(c: char) -> Step {
+        match c {
+            'S' => Self::Start,
+            'E' => Self::End,
+            _ => Self::Middle((c as u8) - b'a')
+        }
+    }
+
+    fn elevation(self) -> u8 {
+        match self {
+            Step::Start => 0,
+            Step::End => b'z' - b'a',
+            Step::Middle(x) => x,
+        }
+    }
+}
+
+struct Grid {
+    height: usize,
+    width: usize,
+    steps: Vec<Step>,
+    unvisited: HashSet<GridCoord>,
+}
 
 impl Grid {
-    fn link_nodes(&self) {
-        for (l_index, line) in self.0.iter().enumerate() {
-            for (c_index, node) in line.iter().enumerate() {
-                node.as_ref()
-                    .borrow_mut()
-                    .link_node(self.get_neighbors(l_index as i32, c_index as i32));
-            }
-        }
+    fn build(lines: Vec<String>) -> Self{
+        let height = lines.len();
+        let width = lines[0].len();
+
+        let steps: Vec<Step> = lines.iter()
+            .flat_map(|line| line.chars())
+            .map(|c| Step::parse(c))
+            .collect();
+
+        let unvisited: HashSet<GridCoord> = steps.iter()
+            .enumerate()
+            .map(|(index, _)| GridCoord::from_index(index, width))
+            .collect();
+
+        Grid { height, width, steps, unvisited }
     }
 
-    fn get_neighbors(&self, line: i32, col: i32) -> Vec<NodeRef> {
-        let neighbors = [
-            (line - 1, col), // Up
-            (line + 1, col), // Down
-            (line, col - 1), // Left
-            (line, col + 1), // Right
-        ];
+    fn get(&self, coord: GridCoord) -> Option<Step> {
+        if coord.x > self.height {
+            return None;
+        } else if coord.y > self.width {
+            return None;
+        }
 
-        neighbors
-            .into_iter()
-            .filter(|(l, c)| (l.is_positive() || l == &0) && (c.is_positive() || c == &0))
-            .filter_map(|(l, c)| {
-                self.0
-                    .get(l as usize)
-                    .and_then(|nodes| nodes.get(c as usize))
-                    .map(|reference| Rc::clone(reference))
+        self.steps.get(coord.x*self.width + coord.y).cloned()
+    }
+
+    fn draw(&self, steps: &HashSet<GridCoord>) {
+        for i in 0..self.height {
+            let mut line = String::new();
+
+            for j in 0..self.width {
+                let element = self.get((i, j).into()).unwrap();
+                if steps.contains(&(i,j).into()) {
+                    line = format!("{}\x1b[41m{}\x1b[0m", line, element);
+                } else {
+                    line = format!("{}{}", line, element);
+                }
+            }
+            println!("{line}");
+        }
+    }
+    
+    fn get_neighbors(&self, coord: GridCoord) -> Vec<GridCoord> {
+        let diff: [(isize, isize); 4] = [(-1, 0), (1, 0), (0,-1), (0, 1)];
+
+        diff.into_iter()
+            .filter(|(l, c)| {
+                let line: Option<usize> = coord.x.checked_add_signed(l.clone());
+                let col: Option<usize> = coord.y.checked_add_signed(c.clone());
+
+                line.is_some_and(|n| n < self.height) && col.is_some_and(|n| n < self.width)
             })
+            .map(|(l, c)| (coord.x.checked_add_signed(l).unwrap(), coord.y.checked_add_signed(c).unwrap()).into())
             .collect()
-
-        // neighbors.into_iter()
-        //     .map(|(l, c)| {
-        //         self.0.get(l)
-        //             .and_then(|nodes| nodes.get(c))
-        //     })
-        //     .flatten()
-        //     .map(|rc|Rc::clone(rc))
-        //     .collect()
     }
 
-    fn get_starting_node(&self) -> Option<NodeRef> {
-        self.0
-            .iter()
-            .flatten()
-            .find(|node| node.borrow().is_starting)
-            .map(|node| Rc::clone(node))
+    fn get_starting_step(&self) -> GridCoord {
+        self.steps.iter().enumerate().find_map(|(i, s)| match s {
+            Step::Start => Some(GridCoord::from_index(i, self.width)),
+            _ => None,
+        }).unwrap()
     }
 
-    fn get_ending_node(&self) -> Option<NodeRef> {
-        self.0
-            .iter()
-            .flatten()
-            .find(|node| node.borrow().is_ending)
-            .map(|node| Rc::clone(node))
+    fn get_ending_step(&self) -> GridCoord {
+        self.steps.iter().enumerate().find_map(|(i, s)| match s {
+            Step::End => Some(GridCoord::from_index(i, self.width)),
+            _ => None,
+        }).unwrap()
+    }
+
+}
+
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
+struct GridCoord {
+    x: usize,
+    y: usize,
+}
+
+impl From<(usize, usize)> for GridCoord {
+    fn from(value: (usize, usize)) -> Self {
+        GridCoord { x: value.0, y: value.1 }
     }
 }
 
-struct Node {
-    id: (usize, usize),
-    height: u8,
-    connection: Vec<NodeRef>,
-    is_starting: bool,
-    is_ending: bool,
-    distance: u32,
-}
-
-impl PartialEq for Node {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
+impl GridCoord {
+    fn from_index(index: usize, grid_width: usize) -> Self {
+        GridCoord { 
+            x: index/grid_width,
+            y: index%grid_width 
+        }
     }
 }
 
-impl Hash for Node {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        self.id.hash(state);
-    }
-}
-
-impl Debug for Node {
+impl Debug for GridCoord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Node")
-            .field("id", &self.id)
-            .field("value", &self.height)
-            .field("connection", &self.connection.iter().map(|n| n.borrow().get_node_char()).collect::<Vec<_>>())
-            .field("is_starting", &self.is_starting)
-            .field("is_ending", &self.is_ending)
-            .field("distance", if &self.distance == &u32::MAX {&"MAX"} else {&self.distance})
-            .finish()
-    }
-}
-
-impl Node {
-    fn new(c: char, line: usize, col: usize) -> Self {
-        Node {
-            id: (line, col),
-            height: Node::build_node_value(c.clone()),
-            connection: vec![],
-            is_starting: c.eq(&STARTING_CHAR),
-            is_ending: c.eq(&ENDING_CHAR),
-            distance: if c.eq(&STARTING_CHAR) {0} else {u32::MAX},
-        }
-    }
-
-    fn build_node_value(c: char) -> u8 {
-        if c.is_uppercase() {
-            return match c {
-                STARTING_CHAR => 'a' as u8 - 96,
-                ENDING_CHAR => 'z' as u8 - 96,
-                _ => panic!("Not a valid character"),
-            };
-        }
-
-        (c as u8) - 96
-    }
-
-    fn get_node_char(&self) -> char {
-        if self.is_starting {
-            return STARTING_CHAR;
-        } else if self.is_ending {
-            return ENDING_CHAR;
-        }
-
-        (self.height + 96) as char
-    }
-
-    fn link_node(&mut self, neighbors: Vec<NodeRef>) {
-        for node_ref in neighbors {
-            if (node_ref.borrow().height as i8) - (self.height as i8) <= 1 {
-                self.connection.push(Rc::clone(&node_ref))
-            }
-        }
+        f.debug_tuple("").field(&self.x).field(&self.y).finish()
     }
 }
 
 pub fn solve() {
-    let grid: Grid = Grid(
-        helper::get_file_lines_iter("inputs/input.txt")
-            .enumerate()
-            .map(|(i, l)| {
-                l.unwrap()
-                    .chars()
-                    .enumerate()
-                    .map(|(c_i, c)| Rc::new(RefCell::new(Node::new(c, i, c_i))))
-                    .collect()
-            })
-            .collect(),
-    );
+    let lines: Vec<String> = helper::get_file_lines_iter("inputs/input.txt").map(|r| r.unwrap()).collect();
 
-    grid.link_nodes();
+    let mut grid = Grid::build(lines);
 
-    let path:u32 = find_shortest_path(&grid, grid.get_starting_node().unwrap(), grid.get_ending_node().unwrap());
-    
-    println!("{path}")
-}
+    grid.draw(&HashSet::from_iter([grid.get_starting_step()]));
 
-fn find_shortest_path(grid: &Grid, starting_node: NodeRef, ending_node: NodeRef) -> u32 {
-    let mut unvisited = HashSet::new();
-    unvisited.extend(grid.0.iter().flatten().map(|node_ref| node_ref.borrow().id.clone()));
+    let mut current_steps = HashSet::new();
+    current_steps.insert(grid.get_starting_step());
 
-    let mut current_node = Rc::clone(&starting_node);
+    let end = grid.get_ending_step();
+    let mut n_steps = 0;
+    while !current_steps.contains(&end) {
+        let mut next_steps: HashSet<GridCoord> = HashSet::new();
 
-    while current_node.borrow().id != ending_node.borrow().id {
-        let mut min_distance: u32 = u32::MAX;
-        let distance = current_node.borrow().distance + 1;
-        
-        for neighbor in current_node.borrow().connection.iter() {
-            if unvisited.contains(&neighbor.borrow().id) {
+        for step_coord in current_steps {
+            for next_coord in grid.get_neighbors(step_coord) {
+                if grid.unvisited.contains(&next_coord) {
+                    let curr = grid.get(step_coord).unwrap();
+                    let next = grid.get(next_coord).unwrap();
 
-                if distance < neighbor.borrow().distance {
-                    neighbor.borrow_mut().distance = distance;
-                }
-
-                if min_distance > neighbor.borrow().distance {
-                    min_distance = neighbor.borrow().distance;
+                    match next.elevation().checked_sub(curr.elevation()) {
+                        Some(x) if x > 1 => (),
+                        _ => {
+                            grid.unvisited.remove(&next_coord);
+                            next_steps.insert(next_coord);
+                        },
+                    }
                 }
             }
-
         }
 
-        let next = Rc::clone(
-            if let Some(node) = current_node.borrow().connection.iter()
-                .find(|node| node.borrow().distance == min_distance && !unvisited.contains(&node.borrow().id)) {
-                    node
-                } else {
-                    unvisited
-                        .iter()
-                        .filter_map(|&(line, col)| grid.0.get(line).and_then(|row| row.get(col)))
-                        .find(|node_ref| node_ref.borrow().distance < u32::MAX)
-                        .unwrap_or(&ending_node)
-                }
-            );
-
-        current_node = next;
+        current_steps = next_steps;
+        n_steps += 1;
+        // grid.draw(&current_steps);
     }
-    
-    ending_node.borrow().distance
+
+    println!("Day 12 part 1: {n_steps}");
 }
