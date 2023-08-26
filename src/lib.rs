@@ -1,5 +1,5 @@
-use std::{str::Chars, iter::Peekable, fmt::Debug};
 use itertools::Itertools;
+use std::{cmp::Ordering, fmt::Debug, iter::Peekable, str::Chars};
 
 mod helper;
 
@@ -9,11 +9,10 @@ enum Packet {
 }
 
 impl Packet {
-    fn parse(line: &str) -> Self{
-        let mut interior = line[1..line.len()-1].chars().peekable();
+    fn parse(line: &str) -> Vec<Self> {
+        let mut interior = line[1..line.len() - 1].chars().peekable();
         let mut data = vec![];
 
-        
         loop {
             let Some(c) = interior.peek() else {
                 break;
@@ -22,39 +21,76 @@ impl Packet {
             match c {
                 '[' => data.push(Self::parse_list(&mut interior)),
                 c if c.is_digit(10) => data.push(Self::parse_number(&mut interior)),
-                _ => { interior.next(); }
+                _ => {
+                    interior.next();
+                }
             }
         }
 
-        Self::List(data)
+        data
     }
 
-    fn parse_list(chars: &mut Peekable<Chars>) -> Self{
+    fn parse_list(chars: &mut Peekable<Chars>) -> Self {
         let mut list = vec![];
         chars.next(); // remove list start character
 
         loop {
             match chars.peek() {
                 Some(c) if c.is_digit(10) => list.push(Self::parse_number(chars)),
-                Some(c) if *c == ']' => { 
+                Some(c) if *c == ']' => {
                     chars.next();
                     break;
-                },
-                Some(c) if *c == '[' => { 
+                }
+                Some(c) if *c == '[' => {
                     list.push(Self::parse_list(chars));
-                },
-                Some(_) => {chars.next();},
-                None => panic!("List never closed!")
+                }
+                Some(_) => {
+                    chars.next();
+                }
+                None => panic!("List never closed!"),
             }
         }
-        
+
         Self::List(list)
     }
 
     fn parse_number(chars: &mut Peekable<Chars>) -> Self {
-
-        let n: String = chars.peeking_take_while(|c| *c != ',' && *c != ']').collect();
+        let n: String = chars
+            .peeking_take_while(|c| *c != ',' && *c != ']')
+            .collect();
         Self::Value(n.parse().unwrap())
+    }
+
+    fn compare(&self, right: &Packet) -> Ordering {
+        match (self, right) {
+            (Packet::Value(l), Packet::Value(r)) => l.cmp(r),
+            (Packet::Value(l), Packet::List(r)) => Self::compare_lists(&vec![Self::Value(*l)], r),
+            (Packet::List(l), Packet::Value(r)) => Self::compare_lists(l, &vec![Self::Value(*r)]),
+            (Packet::List(l), Packet::List(r)) => Self::compare_lists(l, r),
+        }
+    }
+
+    fn compare_lists(left: &Vec<Packet>, right: &Vec<Packet>) -> Ordering {
+        for either_or_both in left.iter().zip_longest(right) {
+            if !either_or_both.has_left() {
+                return Ordering::Less;
+            }
+            if !either_or_both.has_right() {
+                return Ordering::Greater;
+            }
+
+            let (l, r) = either_or_both.both().unwrap();
+
+            let comparison = l.compare(r);
+
+            if comparison == Ordering::Equal {
+                continue;
+            } else {
+                return comparison;
+            }
+        }
+
+        Ordering::Less // if both lists are empty or every item match
     }
 }
 
@@ -73,7 +109,24 @@ pub fn solve() {
         .filter(|s| !s.is_empty())
         .collect();
 
-    for line in lines {
-        println!("{:?}", Packet::parse(&line));
+    let mut indexes = vec![];
+
+    for (index, (left, right)) in lines.iter().tuples().enumerate() {
+        let left = Packet::parse(&left);
+        let right = Packet::parse(&right);
+
+        match Packet::compare_lists(&left, &right) {
+            Ordering::Less => {
+                indexes.push(index);
+                println!("{left:?}");
+                println!("{right:?}");
+                println!();
+            }
+            Ordering::Equal => (),
+            Ordering::Greater => (),
+        }
     }
+    println!("Day 13 part 1: {:?}", indexes);
+
+    // println!("Day 13 part 1: {:?}", indexes.iter().map(|i| i + 1).sum::<usize>());
 }
