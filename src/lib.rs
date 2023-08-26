@@ -1,4 +1,4 @@
-use std::{fmt::{Display, Debug}, collections::HashSet, hash::Hash, f32::consts::E};
+use std::{fmt::{Display, Debug}, collections::HashSet, hash::Hash};
 
 mod helper;
 
@@ -154,11 +154,10 @@ pub fn solve() {
     grid.draw(&HashSet::from_iter([grid.get_starting_step()]));
 
     let mut current_steps = HashSet::new();
-    current_steps.insert(grid.get_starting_step());
+    current_steps.insert(grid.get_ending_step());
 
-    let end = grid.get_ending_step();
     let mut n_steps = 0;
-    while !current_steps.contains(&end) {
+    while !contains_low_region(&grid, &current_steps) {
         let mut next_steps: HashSet<GridCoord> = HashSet::new();
 
         for step_coord in current_steps {
@@ -167,7 +166,7 @@ pub fn solve() {
                     let curr = grid.get(step_coord).unwrap();
                     let next = grid.get(next_coord).unwrap();
 
-                    match next.elevation().checked_sub(curr.elevation()) {
+                    match curr.elevation().checked_sub(next.elevation()) {
                         Some(x) if x > 1 => (),
                         _ => {
                             grid.unvisited.remove(&next_coord);
@@ -184,4 +183,8 @@ pub fn solve() {
     }
 
     println!("Day 12 part 1: {n_steps}");
+}
+
+fn contains_low_region(grid: &Grid, steps: &HashSet<GridCoord>) -> bool {
+    steps.iter().find(|&coord| grid.get(coord.clone()).unwrap().elevation() == 0).is_some()
 }
