@@ -90,7 +90,7 @@ impl Packet {
             }
         }
 
-        Ordering::Less // if both lists are empty or every item match
+        Ordering::Equal // if both lists are empty or every item match
     }
 }
 
@@ -126,7 +126,7 @@ pub fn solve() {
             Ordering::Greater => (),
         }
     }
-    println!("Day 13 part 1: {:?}", indexes);
+    // println!("Day 13 part 1: {:?}", indexes);
 
-    // println!("Day 13 part 1: {:?}", indexes.iter().map(|i| i + 1).sum::<usize>());
+    println!("Day 13 part 1: {:?}", indexes.iter().map(|i| i + 1).sum::<usize>());
 }
