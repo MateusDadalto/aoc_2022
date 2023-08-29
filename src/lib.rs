@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, fs::OpenOptions, io::Write};
 
 mod helper;
 
@@ -113,7 +113,7 @@ struct Grid {
 }
 
 impl Grid {
-    fn build(height: usize, width: usize, min_x: usize) -> Self {
+    fn build(height: usize, width: usize) -> Self {
         let tiles = vec![Tile::Air; height * width];
 
         Grid {
@@ -121,7 +121,7 @@ impl Grid {
             width,
             tiles,
             sand_source: Coord {
-                x: 500 - min_x + 1,
+                x: 500,
                 y: 0,
             },
             falling_sand: None,
@@ -161,9 +161,9 @@ impl Grid {
             .and_then(|index| self.tiles.get(index).cloned())
     }
 
-    fn draw(&self, _file_path: &str) {
-        // let mut f = OpenOptions::new().write(true).truncate(true).create(true).open(file_path).unwrap();
-        // let mut content = vec![];
+    fn draw(&self, file_path: &str) {
+        let mut f = OpenOptions::new().write(true).truncate(true).create(true).open(file_path).unwrap();
+        let mut content = vec![];
         for y in 0..self.height {
             let mut line = String::new();
             for x in 0..self.width {
@@ -175,10 +175,11 @@ impl Grid {
                 let tile = self.get((x, y).into());
                 line = format!("{line}{tile:?}");
             }
-            println!("{line}")
+            // println!("{line}")
+            writeln!(content, "{line}").unwrap();
         }
 
-        // f.write_all(&content).unwrap();
+        f.write_all(&content).unwrap();
     }
 
     fn step(&mut self) {
@@ -233,47 +234,50 @@ impl Grid {
 }
 
 pub fn solve() {
-    let rock_coordinates: Vec<Vec<Coord>> = helper::get_file_lines_iter("inputs/input.txt")
+    let mut rock_coordinates: Vec<Vec<Coord>> = helper::get_file_lines_iter("inputs/input.txt")
         .map(|l| {
             let line = l.unwrap();
             line.split("->").map(Coord::parse).collect()
         })
         .collect();
 
-    let (normalized, min_x) = normalize_coords(rock_coordinates);
-
-    let max_x = normalized.iter().flatten().max_by_key(|c| c.x).unwrap().x + 1; // leave last as air gap
-    let max_y = normalized.iter().flatten().max_by_key(|c| c.y).unwrap().y + 1; // leave last as air gap
+    let max_x = rock_coordinates.iter().flatten().max_by_key(|c| c.x).unwrap().x;
+    let max_y = rock_coordinates.iter().flatten().max_by_key(|c| c.y).unwrap().y;
 
     // Height and width are max + 1 because values ranges from 0 to n, meaning length = max + 1
-    let mut grid = Grid::build(max_y + 1, max_x + 1, min_x);
+    let mut grid = Grid::build(max_y + 2 + 1, max_x*2 + 1);
+    
+    rock_coordinates.push(
+        Coord::from((0, max_y + 2)).range((max_x*2, max_y + 2).into())
+    );
 
-    grid.add_rocks(normalized);
+    grid.add_rocks(rock_coordinates);
 
-    while !grid.full {
+
+    while grid.get(grid.sand_source) != Tile::Sand(SandState::Rest) {
         grid.step();
     }
 
-    grid.draw("");
+    grid.draw("out.txt");
 
-    println!("Day 14 part 1 {}", grid.count_sand());
+    println!("Day 14 part 2 {}", grid.count_sand());
 }
 
 // change coordinates to start near to x = 0
-fn normalize_coords(coords: Vec<Vec<Coord>>) -> (Vec<Vec<Coord>>, usize) {
-    let min_x = coords.iter().flatten().min_by_key(|c| c.x).unwrap().x;
+// fn normalize_coords(coords: Vec<Vec<Coord>>) -> (Vec<Vec<Coord>>, usize) {
+//     let min_x = coords.iter().flatten().min_by_key(|c| c.x).unwrap().x;
 
-    let coords = coords
-        .into_iter()
-        .map(|vec| {
-            vec.into_iter()
-                .map(|c| Coord {
-                    x: c.x - min_x + 1, // leave 1 air gap in the beginning of the grid
-                    y: c.y,
-                })
-                .collect()
-        })
-        .collect();
+//     let coords = coords
+//         .into_iter()
+//         .map(|vec| {
+//             vec.into_iter()
+//                 .map(|c| Coord {
+//                     x: c.x - min_x + 1, // leave 1 air gap in the beginning of the grid
+//                     y: c.y,
+//                 })
+//                 .collect()
+//         })
+//         .collect();
 
-    (coords, min_x)
-}
+//     (coords, min_x)
+// }
