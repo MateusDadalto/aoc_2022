@@ -1,4 +1,4 @@
-use std::{f32::consts::E, fmt::Debug, fs::OpenOptions, io::Write};
+use std::fmt::Debug;
 
 mod helper;
 
@@ -17,11 +17,15 @@ impl Coord {
 
     fn range(self, end: Self) -> Vec<Self> {
         if self.x == end.x {
-            return (self.y..=end.y)
+            let min = usize::min(self.y, end.y);
+            let max = usize::max(self.y, end.y);
+            return (min..=max)
                 .map(|i| Coord { x: self.x, y: i })
                 .collect();
         } else if self.y == end.y {
-            return (self.x..=end.x)
+            let min = usize::min(self.x, end.x);
+            let max = usize::max(self.x, end.x);
+            return (min..=max)
                 .map(|i| Coord { x: i, y: self.y })
                 .collect();
         }
@@ -117,7 +121,7 @@ impl Grid {
             width,
             tiles,
             sand_source: Coord {
-                x: 500 - min_x,
+                x: 500 - min_x + 1,
                 y: 0,
             },
             falling_sand: None,
@@ -157,7 +161,7 @@ impl Grid {
             .and_then(|index| self.tiles.get(index).cloned())
     }
 
-    fn draw(&self, file_path: &str) {
+    fn draw(&self, _file_path: &str) {
         // let mut f = OpenOptions::new().write(true).truncate(true).create(true).open(file_path).unwrap();
         // let mut content = vec![];
         for y in 0..self.height {
