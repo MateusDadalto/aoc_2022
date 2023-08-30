@@ -1,6 +1,6 @@
 use std::ops::Sub;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Point {
     pub x: isize,
     pub y: isize,
@@ -29,6 +29,25 @@ impl Point {
             x: x.parse().unwrap(),
             y: y.parse().unwrap(),
         }
+    }
+
+    pub fn size(self) -> usize {
+        self.x.unsigned_abs() + self.y.unsigned_abs()
+    }
+
+    pub fn is_in_radius(self, p: Point, r: usize) -> bool{
+        (self-p).size() <= r
+    }
+
+    pub fn distance(self, rhs: Self) -> usize {
+        (self - rhs).size()
+    }
+
+    pub fn range_x(start_x: isize, end_x:isize, y: isize) -> Vec<Self> {
+        Box::new((start_x..=end_x)
+            .map(move |x| {
+                Point {x, y}
+            })).collect()
     }
 }
 
