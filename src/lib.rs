@@ -47,6 +47,12 @@ pub fn solve() {
 
     for (sensor, beacon) in input {
         let radius = sensor.distance(beacon);
+
+        if sensor.y + (radius as isize) < 2_000_000 {
+            println!("skipping: {:?}", (sensor, beacon));
+            continue;
+        }
+
         empty_points.extend(columns.iter().filter(|p| p.is_in_radius(sensor, radius)));
 
         empty_points.remove(&beacon);
