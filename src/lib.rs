@@ -18,45 +18,29 @@ pub fn solve() {
         input.push((sensor_point, beacon_point));
     }
 
-    let max_x_duo = input
-        .iter()
-        .max_by_key(|(sensor, beacon)| {
-            let max = sensor.x.max(beacon.x);
-            max
-        })
-        .unwrap();
-    let min_x_duo = input
-        .iter()
-        .min_by_key(|(sensor, beacon)| {
-            let min = sensor.x.min(beacon.x);
-            min
-        })
-        .unwrap();
+    let mut distress_coord: HashSet<Point> = HashSet::new();
 
-    let radius_max_x = max_x_duo.0.distance(max_x_duo.1) as isize;
-    let radius_min_x = min_x_duo.0.distance(min_x_duo.1) as isize;
-    let start_range = min_x_duo.0.x.min(min_x_duo.1.x) - radius_min_x;
-    let end_range = max_x_duo.0.x.max(max_x_duo.1.x) + radius_max_x;
-
-    let columns = Point::range_x(
-        start_range,
-        end_range,
-        2_000_000,
-    );
-    let mut empty_points: HashSet<Point> = HashSet::with_capacity((end_range - start_range).unsigned_abs());
-
-    for (sensor, beacon) in input {
-        let radius = sensor.distance(beacon);
-
-        if sensor.y + (radius as isize) < 2_000_000 {
-            println!("skipping: {:?}", (sensor, beacon));
-            continue;
+    for x in 0..4_000_001 {
+        if x%100_000 == 0 {
+            println!("{x}");
         }
 
-        empty_points.extend(columns.iter().filter(|p| p.is_in_radius(sensor, radius)));
+        for y in 0..4_000_001 {
+            
+            let p: Point = (x,y).into();
 
-        empty_points.remove(&beacon);
+            let is_in_radius = input.iter().any(|(sensor, beacon)| {
+                let radius = sensor.distance(beacon.clone());
+
+                p.is_in_radius(sensor.clone(), radius)
+            });
+
+            if !is_in_radius{
+                println!("{p:?}");
+                distress_coord.insert(p);
+            }
+        }
     }
 
-    println!("Day 15 part 1: {}", empty_points.len());
+    println!("Day 15 part 1: {distress_coord:?}");
 }

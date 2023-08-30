@@ -44,10 +44,10 @@ impl Point {
     }
 
     pub fn range_x(start_x: isize, end_x:isize, y: isize) -> Vec<Self> {
-        Box::new((start_x..=end_x)
+        (start_x..=end_x)
             .map(move |x| {
                 Point {x, y}
-            })).collect()
+            }).collect()
     }
 }
 
