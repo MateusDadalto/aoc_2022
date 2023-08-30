@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use point::Point;
 
 mod helper;
@@ -9,6 +7,7 @@ pub fn solve() {
     let lines = helper::get_file_lines_iter("inputs/input.txt");
 
     let mut input: Vec<(Point, Point)> = vec![];
+    let mut answer = Point { x: 0, y: 0 };
     for line in lines {
         let line = line.unwrap();
         let parts = line.split_once(':').unwrap();
@@ -18,29 +17,23 @@ pub fn solve() {
         input.push((sensor_point, beacon_point));
     }
 
-    let mut distress_coord: HashSet<Point> = HashSet::new();
+    // I know how inneficient this is
+    'outer: for (sensor, beacon) in input.iter() {
+        let outside_points = sensor.outside_points(sensor.distance(beacon.clone()));
 
-    for x in 0..4_000_001 {
-        if x%100_000 == 0 {
-            println!("{x}");
-        }
-
-        for y in 0..4_000_001 {
-            
-            let p: Point = (x,y).into();
-
-            let is_in_radius = input.iter().any(|(sensor, beacon)| {
-                let radius = sensor.distance(beacon.clone());
-
-                p.is_in_radius(sensor.clone(), radius)
-            });
-
-            if !is_in_radius{
-                println!("{p:?}");
-                distress_coord.insert(p);
+        for point in outside_points {
+            if input
+                .iter()
+                .any(|(s, b)| point.is_in_radius(s.clone(), s.distance(b.clone())))
+            {
+                continue;
             }
+
+            println!("{point:?}");
+            answer = point;
+            break 'outer;
         }
     }
 
-    println!("Day 15 part 1: {distress_coord:?}");
+    println!("Day 15 part 2: {}", answer.x * 4_000_000 + answer.y);
 }

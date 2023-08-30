@@ -35,19 +35,44 @@ impl Point {
         self.x.unsigned_abs() + self.y.unsigned_abs()
     }
 
-    pub fn is_in_radius(self, p: Point, r: usize) -> bool{
-        (self-p).size() <= r
+    pub fn is_in_radius(self, p: Point, r: usize) -> bool {
+        (self - p).size() <= r
     }
 
     pub fn distance(self, rhs: Self) -> usize {
         (self - rhs).size()
     }
 
-    pub fn range_x(start_x: isize, end_x:isize, y: isize) -> Vec<Self> {
-        (start_x..=end_x)
-            .map(move |x| {
-                Point {x, y}
-            }).collect()
+    pub fn outside_points(self, radius: usize) -> Vec<Point> {
+        let outside_radius = (radius + 1) as isize;
+        let mut points = vec![];
+        for x in -outside_radius..=outside_radius {
+            let y_top = (outside_radius - x).abs();
+            let y_bottom = -y_top;
+
+            let top_point = Point {
+                x: self.x + x,
+                y: self.y + y_top,
+            };
+            let bottom_point = Point {
+                x: self.x + x,
+                y: self.y + y_bottom,
+            };
+
+            if top_point.is_in_bound() {
+                points.push(top_point);
+            }
+
+            if bottom_point.is_in_bound() {
+                points.push(bottom_point);
+            }
+        }
+
+        points
+    }
+
+    fn is_in_bound(self) -> bool {
+        self.x >= 0 && self.x <= 4_000_000 && self.y >= 0 && self.y <= 4_000_000
     }
 }
 
