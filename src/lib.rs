@@ -1,9 +1,7 @@
-mod helper;
+const EXAMPLE: &str = include_str!("../inputs/example.txt");
+const INPUT: &str = include_str!("../inputs/input.txt");
 
 pub fn solve() {
-    let lines = helper::get_file_lines_iter("inputs/input.txt");
-
-    for line in lines {
-        println!("{}", line.unwrap());
-    }
+    EXAMPLE.lines();
+    INPUT.lines();
 }
