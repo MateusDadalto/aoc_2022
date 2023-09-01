@@ -1,4 +1,4 @@
-use std::fmt::Debug;
+use std::{fmt::Debug, time::Instant};
 
 const EXAMPLE: &str = include_str!("../inputs/example.txt");
 const INPUT: &str = include_str!("../inputs/input.txt");
@@ -8,11 +8,12 @@ pub fn solve() {
 
     let mut fall_space = FallSpace::new(10, 7);
 
-    let mut n_rocks = 0;
+    let mut n_rocks: usize = 0;
     let mut current_rock = fall_space.spawn_rock();
 
+    let start = Instant::now();
 
-    while n_rocks < 2022 {
+    while n_rocks < 1_000_000_000_000 {
         let wind = winds_cycle.next().unwrap();
 
         current_rock = fall_space.move_by_wind(current_rock, wind);
@@ -23,8 +24,11 @@ pub fn solve() {
 
             new_rock
         });
+
+        if n_rocks%1_000_000_000 == 0{
+            println!("Elapsed: {}, Rocks: {n_rocks:#?}", start.elapsed().as_secs_f32());
+        }
     }
-    fall_space.draw(current_rock);
 
     println!("Day 17 part 1: {}", fall_space.rock_height);
 
