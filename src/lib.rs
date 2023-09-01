@@ -1,5 +1,7 @@
 use std::collections::{BTreeSet, HashMap, VecDeque};
 
+use itertools::Itertools;
+
 const EXAMPLE: &str = include_str!("../inputs/example.txt");
 const INPUT: &str = include_str!("../inputs/input.txt");
 
@@ -14,7 +16,10 @@ pub fn solve() {
     });
 
     let distances = calculate_distances(&valves);
-    let limit = 30;
+    let limit = 26;
+    
+    // keep relieved pressure for each set of opened valves calculated
+    let mut relieve_states: HashMap<BTreeSet<&str>, u32> = Default::default();
 
     let mut possible_states = VecDeque::new();
     possible_states.push_back(State {
@@ -23,8 +28,6 @@ pub fn solve() {
         elapsed: 0,
         relieved: 0,
     });
-
-    let mut max_relieve = 0;
 
     while let Some(State {
         opened,
@@ -46,10 +49,15 @@ pub fn solve() {
             }
 
             let new_relieved = relieved + ((limit - new_elapsed) * next_valve.flow_rate);
-            max_relieve = max_relieve.max(new_relieved);
 
             let mut new_opened = opened.clone();
             new_opened.insert(next_valve.id.as_str());
+
+            // save state opened valves and relieved value
+            relieve_states
+                .entry(new_opened.clone())
+                .and_modify(|relieved_pressure| *relieved_pressure = new_relieved.max(*relieved_pressure))
+                .or_insert(new_relieved);
 
             possible_states.push_back(State {
                 opened: new_opened,
@@ -59,8 +67,16 @@ pub fn solve() {
             });
         }
     }
+    
+    let answer = relieve_states
+        .iter()
+        .tuple_combinations()
+        .filter(|(human, eleph)| human.0.is_disjoint(eleph.0))
+        .map(|(human, eleph)| human.1 + eleph.1)
+        .max()
+        .unwrap();
 
-    println!("Day 16 part 1: {max_relieve}");
+    println!("Day 16 part 2: {answer}");
 }
 
 // use Floyd-Warshall algorithm applied to hashmaps instead of arrays (keys instead of indexes)
