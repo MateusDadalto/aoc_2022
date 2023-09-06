@@ -1,6 +1,6 @@
-use std::time::Instant;
+use std::collections::HashMap;
 
-const EXAMPLE: &str = include_str!("../inputs/example.txt");
+const _EXAMPLE: &str = include_str!("../inputs/example.txt");
 const INPUT: &str = include_str!("../inputs/input.txt");
 // these limits represent the borders that the rock can reach
 //
@@ -13,22 +13,46 @@ const LEFT_LIMIT: u32 = 0x40404040;
 const RIGHT_LIMIT: u32 = 0x01010101;
 
 pub fn solve() {
-    let mut winds = INPUT.trim().chars().map(|c| Direction::parse(c)).cycle();
+    let mut winds = INPUT.trim().chars().map(|c| Direction::parse(c)).enumerate().cycle();
 
     let mut chamber = Chamber::with_capacity(10000);
 
-    let total_rocks = 2022;
+    let total_rocks: usize = 1_000_000_000_000;
+    let mut rocks_added = 0;
+    let mut accumulated_height = 0;
+    let mut rocks = Rock::all().into_iter().cycle();
 
-    let time = Instant::now();
-    for rock in Rock::all().iter().cycle().take(total_rocks) {
-        chamber.add_rock(&mut winds, *rock);
+    let mut seen = HashMap::new();
+
+    while rocks_added < total_rocks {
+        let rock = rocks.next().unwrap();
+
+        let idx = chamber.add_rock(&mut winds, rock);
+
+        rocks_added +=1;
+
+        if chamber.height() < 8 { continue; }
+
+        let state = (chamber.skyline(), rock, idx);
+
+        if let Some((prev_rocks_added, prev_height)) = seen.get(&state) {
+            let rocks_per_cycle: usize = rocks_added - prev_rocks_added;
+
+            let cycles_left: usize = (total_rocks - rocks_added) / rocks_per_cycle;
+
+            rocks_added += rocks_per_cycle * cycles_left;
+
+            accumulated_height += cycles_left * (chamber.height() - prev_height);
+
+            seen.clear();
+            continue;
+        }
+
+        seen.insert(state, (rocks_added, chamber.height()));
     }
 
-    Rock::all()[2].draw();
-
     // chamber.draw();
-    println!("{}", chamber.height());
-    println!("{}", time.elapsed().as_nanos());
+    println!("{}", chamber.height() + accumulated_height);
 }
 
 #[derive(Clone, Copy)]
@@ -47,7 +71,7 @@ impl Direction {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 struct Rock(u32);
 
 impl Rock {
@@ -144,13 +168,15 @@ impl Chamber {
             .fold(0, |acc, layer| (acc << 8) | (*layer as u32))
     }
 
-    fn add_rock(&mut self, winds: &mut impl Iterator<Item = Direction>, mut rock: Rock) {
+    fn add_rock(&mut self, winds: &mut impl Iterator<Item = (usize, Direction)>, mut rock: Rock) -> usize {
         let mut level = self.height() + 3;
+        let mut wind_index = 0;
 
         loop {
             let layers = self.get_chunk_at(level);
 
-            let wind = winds.next().unwrap();
+            let (idx, wind) = winds.next().unwrap();
+            wind_index = idx;
 
             rock.shove(wind, layers);
 
@@ -175,6 +201,8 @@ impl Chamber {
 
             level -= 1;
         }
+
+        wind_index
     }
 
     fn draw(&self) {
@@ -185,6 +213,21 @@ impl Chamber {
             println!("{s}");
         }
         println!("_______");
+    }
+
+    fn skyline(&self) -> Option<u64>{
+        if self.height() < 8{
+            return None;
+        }
+
+        // similar to chunk, but the size is 8 layers (64 bits)
+        let result = self.layers
+            .iter()
+            .rev()
+            .take(8)
+            .fold(0, |acc, layer| (acc << 8) | (*layer as u64));
+
+        Some(result)
     }
 }
 
