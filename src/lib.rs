@@ -1,3 +1,5 @@
+use std::time::Instant;
+
 const EXAMPLE: &str = include_str!("../inputs/example.txt");
 const INPUT: &str = include_str!("../inputs/input.txt");
 // these limits represent the borders that the rock can reach
@@ -11,18 +13,22 @@ const LEFT_LIMIT: u32 = 0x40404040;
 const RIGHT_LIMIT: u32 = 0x01010101;
 
 pub fn solve() {
-    let mut winds = EXAMPLE.trim().chars().map(|c| Direction::parse(c)).cycle();
+    let mut winds = INPUT.trim().chars().map(|c| Direction::parse(c)).cycle();
 
     let mut chamber = Chamber::with_capacity(10000);
 
-    let total_rocks = 8;
+    let total_rocks = 2022;
 
+    let time = Instant::now();
     for rock in Rock::all().iter().cycle().take(total_rocks) {
         chamber.add_rock(&mut winds, *rock);
     }
 
-    chamber.draw();
-    // println!("{}", chamber.height());
+    Rock::all()[2].draw();
+
+    // chamber.draw();
+    println!("{}", chamber.height());
+    println!("{}", time.elapsed().as_nanos());
 }
 
 #[derive(Clone, Copy)]
@@ -45,16 +51,16 @@ impl Direction {
 struct Rock(u32);
 
 impl Rock {
-    // return all rock values (little-endian representation)
-    /// 00011110 | 00001000 | 00000100 | 00010000 | 00011000
-    /// 00000000 | 00011100 | 00000100 | 00010000 | 00011000
-    /// 00000000 | 00001000 | 00011100 | 00010000 | 00000000
+    // return all rock values (big-endian representation)
     /// 00000000 | 00000000 | 00000000 | 00010000 | 00000000
+    /// 00000000 | 00001000 | 00000100 | 00010000 | 00000000
+    /// 00000000 | 00011100 | 00000100 | 00010000 | 00011000
+    /// 00011110 | 00001000 | 00011100 | 00010000 | 00011000
     const fn all() -> [Self; 5] {
         [
             Self(0x0000001E), // - 00000000_00000000_00000000_00011110
             Self(0x00081C08), // + 00000000_00001000_00011100_00001000
-            Self(0x001c0404), // L 00000000_00000100_00000100_00011100
+            Self(0x0004041C), // L 00000000_00000100_00000100_00011100
             Self(0x10101010), // | 00010000_00010000_00010000_00010000
             Self(0x00001818), // # 00000000_00000000_00011000_00011000
         ]
@@ -86,7 +92,7 @@ impl Rock {
     }
 
     fn bytes(&self) -> impl DoubleEndedIterator<Item = u8> {
-        self.0.to_le_bytes().into_iter().filter(|b| *b > 0)
+        self.0.to_be_bytes().into_iter().filter(|b| *b > 0)
     }
 
     fn draw(&self) {
@@ -180,4 +186,14 @@ impl Chamber {
         }
         println!("_______");
     }
+}
+
+fn draw(chunk: u32) {
+    for layer in chunk.to_be_bytes() {
+        let s = format!("{:0width$b}", layer, width = 7)
+            .replace("0", ".")
+            .replace("1", "#");
+        println!("{s}");
+    }
+    println!("_______");
 }
