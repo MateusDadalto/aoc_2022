@@ -1,3 +1,5 @@
+use std::collections::BTreeSet;
+
 const EXAMPLE: &str = include_str!("../inputs/example.txt");
 const INPUT: &str = include_str!("../inputs/input.txt");
 
@@ -5,7 +7,17 @@ pub fn solve() {
     let example: Vec<Cube> = EXAMPLE.lines().map(Cube::parse).collect();
     let input: Vec<Cube> = INPUT.lines().map(Cube::parse).collect();
 
+    let mut surfaces = BTreeSet::new();
 
+    for cube in input {
+        let cube_surfaces = BTreeSet::from(cube.surfaces());
+        surfaces = surfaces
+            .symmetric_difference(&cube_surfaces)
+            .cloned()
+            .collect();
+    }
+
+    println!("{}", surfaces.len());
 }
 
 // cord are its left-bottom-back coords, meaning it fills (x,y,z) to (x+1, y+1, z+1) cubic space
@@ -31,22 +43,71 @@ impl Cube {
     }
 
     // every cube is defined by its corners, which are its origin + the corners of a unit cube in (0,0,0);
-    fn corners(&self) -> [Coord; 8] {
-        [
-            self.coord + (0, 0, 0).into(), // left-bottom-front (origin)
-            self.coord + (1, 0, 0).into(), // right-bottom-front
-            self.coord + (1, 0, 1).into(), // right-bottom-back
-            self.coord + (0, 0, 1).into(), // left-bottom-back
-            self.coord + (0, 1, 0).into(), // left-top-front
-            self.coord + (0, 1, 1).into(), // left-top-back
-            self.coord + (1, 1, 0).into(), // right-top-front
-            self.coord + (1, 1, 1).into(), // right-top-back
-        ]
-    }
+    // fn corners(&self) -> [Coord; 8] {
+    //     [
+    //         self.coord + (0, 0, 0).into(), // left-bottom-front (origin)
+    //         self.coord + (1, 0, 0).into(), // right-bottom-front
+    //         self.coord + (1, 0, 1).into(), // right-bottom-back
+    //         self.coord + (0, 0, 1).into(), // left-bottom-back
+    //         self.coord + (0, 1, 0).into(), // left-top-front
+    //         self.coord + (0, 1, 1).into(), // left-top-back
+    //         self.coord + (1, 1, 0).into(), // right-top-front
+    //         self.coord + (1, 1, 1).into(), // right-top-back
+    //     ]
+    // }
 
+    fn surfaces(&self) -> Surfaces {
+        let mut surfaces = BTreeSet::new();
+        surfaces.insert(BTreeSet::from([
+            self.coord + (0, 0, 0).into(),
+            self.coord + (1, 0, 0).into(),
+            self.coord + (1, 1, 0).into(),
+            self.coord + (0, 1, 0).into(),
+        ]));
+        surfaces.insert(BTreeSet::from([
+            self.coord + (0, 0, 0).into(),
+            self.coord + (1, 0, 0).into(),
+            self.coord + (1, 1, 0).into(),
+            self.coord + (0, 1, 0).into(),
+        ])); // front
+        surfaces.insert(BTreeSet::from([
+            self.coord + (0, 0, 1).into(),
+            self.coord + (1, 0, 1).into(),
+            self.coord + (1, 1, 1).into(),
+            self.coord + (0, 1, 1).into(),
+        ])); // back
+        surfaces.insert(BTreeSet::from([
+            self.coord + (0, 0, 0).into(),
+            self.coord + (1, 0, 0).into(),
+            self.coord + (1, 0, 1).into(),
+            self.coord + (0, 0, 1).into(),
+        ])); // bottom
+        surfaces.insert(BTreeSet::from([
+            self.coord + (0, 1, 0).into(),
+            self.coord + (1, 1, 0).into(),
+            self.coord + (1, 1, 1).into(),
+            self.coord + (0, 1, 1).into(),
+        ])); // top
+        surfaces.insert(BTreeSet::from([
+            self.coord + (0, 0, 0).into(),
+            self.coord + (0, 1, 0).into(),
+            self.coord + (0, 1, 1).into(),
+            self.coord + (0, 0, 1).into(),
+        ])); // left
+        surfaces.insert(BTreeSet::from([
+            self.coord + (1, 0, 0).into(),
+            self.coord + (1, 0, 1).into(),
+            self.coord + (1, 1, 0).into(),
+            self.coord + (1, 1, 1).into(),
+        ])); // right
+
+        surfaces
+    }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+type Surfaces = BTreeSet<BTreeSet<Coord>>;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 struct Coord {
     x: usize,
     y: usize,
