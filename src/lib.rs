@@ -7,7 +7,10 @@ pub fn solve() {
     let mut total = 0;
 
     for cube in input.iter() {
-        let exposed_surfaces = 6 - input.iter().filter(|&c| cube.is_neighboor(c.clone())).count();
+        let exposed_surfaces = 6 - input
+            .iter()
+            .filter(|&c| cube.is_neighboor(c.clone()))
+            .count();
 
         total += exposed_surfaces;
     }
@@ -34,23 +37,6 @@ impl Cube {
     }
 
     fn is_neighboor(self, other: Self) -> bool {
-        let neighboors = [
-            self + Cube(1, 0, 0),
-            self + Cube(-1, 0, 0),
-            self + Cube(0, 1, 0),
-            self + Cube(0, -1, 0),
-            self + Cube(0, 0, 1),
-            self + Cube(0, 0, -1),
-        ];
-
-        neighboors.contains(&other)
-    }
-}
-
-impl std::ops::Add for Cube {
-    type Output = Self;
-
-    fn add(self, rhs: Self) -> Self::Output {
-        Cube(self.0 + rhs.0, self.1 + rhs.1, self.2 + rhs.2)
+        self.0.abs_diff(other.0) + self.1.abs_diff(other.1) + self.2.abs_diff(other.2) == 1
     }
 }
