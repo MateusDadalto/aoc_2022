@@ -4,15 +4,16 @@ const INPUT: &str = include_str!("../inputs/input.txt");
 pub fn solve() {
     let example: Vec<Cube> = EXAMPLE.lines().map(Cube::parse).collect();
     let input: Vec<Cube> = INPUT.lines().map(Cube::parse).collect();
-    let mut total = 0;
+    let mut total = input.len() * 6;
 
-    for cube in input.iter() {
-        let exposed_surfaces = 6 - input
+    for (i, cube) in input.iter().enumerate() {
+        let exposed_surfaces = input
             .iter()
+            .skip(i)
             .filter(|&c| cube.is_neighboor(c.clone()))
             .count();
 
-        total += exposed_surfaces;
+        total -= 2*exposed_surfaces;
     }
 
     println!("{total}");
