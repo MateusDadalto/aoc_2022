@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 
 #[allow(dead_code)]
 const EXAMPLE: &str = include_str!("../inputs/example.txt");
@@ -8,17 +8,17 @@ const INPUT: &str = include_str!("../inputs/input.txt");
 // this is going to be hell, I know;
 pub fn solve() {
     // let input: Vec<Blueprint> = EXAMPLE.lines().map(Blueprint::parse).collect();
-    let input: Vec<Blueprint> = INPUT.lines().map(Blueprint::parse).collect();
-    let mut sum = 0;
+    let input: Vec<Blueprint> = INPUT.lines().take(3).map(Blueprint::parse).collect();
+    let mut r = 1;
 
     for b in input {
-        let id = b.id;
+        let _id = b.id;
         let max = max_geodes(b);
 
-        sum += id*max;
+        r = r*max;
     }
 
-    println!("Day 19 part 1: {}", sum);
+    println!("Day 19 part 1: {}", r);
 }
 
 fn max_geodes(blueprint: Blueprint) -> u16 {
@@ -27,7 +27,7 @@ fn max_geodes(blueprint: Blueprint) -> u16 {
         max_robots[i] = blueprint.bots.iter().map(|cost| cost[i]).max().unwrap();
     }
 
-    let max_time = 24;
+    let max_time = 32;
     let mut max_geodes = 0;
 
     let mut q = VecDeque::new();
