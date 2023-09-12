@@ -2,24 +2,52 @@ use std::{hash::{Hash, Hasher}, collections::HashMap, ops::{Add, Sub, Mul, Div}}
 
 const EXAMPLE: &str = include_str!("../inputs/example.txt");
 const INPUT: &str = include_str!("../inputs/input.txt");
+const ROOT: &str = "root";
+const HUMAN: &str = "humn";
 
 pub fn solve() {
     // let monkeys: HashMap<String, Monkey> = EXAMPLE.lines().map(Monkey::parse).map(|m| (m.name.clone(), m)).collect();
-    let monkeys: HashMap<String, Monkey> = INPUT.lines().map(Monkey::parse).map(|m| (m.name.clone(), m)).collect();
+    let mut monkeys: HashMap<String, Monkey> = INPUT.lines().map(Monkey::parse).map(|m| (m.name.clone(), m)).collect();
 
-    let r = monkeys.get("root").unwrap().eval(&monkeys);
+    {
+        let root = monkeys.get_mut(ROOT).unwrap();
+        root.value = root.value.replace("+", "-");
+    }
 
-    // let no_humn = monkeys.get("njlw").unwrap().eval(&monkeys);
-    // let humn = monkeys.get("gvfh").unwrap().eval(&monkeys);
+    let root = monkeys.get(ROOT).unwrap();
+    // make it so root will need to be 0. (lhs - rhs = 0)
+    let mut root_result = root.eval(&monkeys);
+    let mut a = 0.; //wild guesses, I could narrow it down but where is the fun?
+    let a_sign = eval_humn_at(a, &mut monkeys).signum();
+    let mut b = 100_000_000_000_000.;
+    let b_sign = eval_humn_at(b, &mut monkeys).signum();
 
-    // println!("NO HUMAN: {}", no_humn);
-    // println!("HUMAN: {humn}");
+    // lets solve it numerically, why not?????? who doesn't love the good ol' bisection
+    while !are_floats_equal(root_result, 0.) {
+        let guess = (a + b) / 2.;
+        root_result = eval_humn_at(guess, &mut monkeys);
 
-    // println!("diff: {}", no_humn - humn);
-    println!("{}", r);
+        if root_result.signum() == a_sign {
+            a = guess;
+            
+        } else if root_result.signum() == b_sign {
+            b = guess;
+        } else {
+            panic!("look at me, I'm the captain now"); // https://www.youtube.com/watch?v=WxhTbxMSvT0
+        }
+    }
+
+    println!("Day 20 part 2 {}", monkeys.get(HUMAN).unwrap().value);
+}
+
+fn eval_humn_at(x: f64, monkeys: &mut HashMap<String, Monkey>) -> f64 {
+    monkeys.get_mut(HUMAN).unwrap().value = x.to_string();
+
+    monkeys.get(ROOT).unwrap().eval(&monkeys)
 }
 
 #[derive(Debug, Clone)]
+// in hindsight, I'd change monkey to be an enum, no need for kind... but we're too deep already
 struct Monkey {
     name: String,
     kind: MonkeyType,
@@ -41,11 +69,6 @@ impl Monkey {
     }
 
     fn eval(&self, monkeys: &HashMap<String, Monkey>) -> f64 {
-        if self.name.as_str() == "humn" {
-            // return 3_412_650_897_410;
-            return 3_412_650_897_405.;
-        }
-
         match self.kind {
             MonkeyType::Value => self.value.parse().unwrap(),
             MonkeyType::Operation => {
@@ -94,4 +117,8 @@ impl Operator {
             any => panic!("Invalid string for operator: {any}")
         }
     }
+}
+
+fn are_floats_equal(a: f64, b: f64) -> bool {
+    (a - b).abs() < 1e-5
 }

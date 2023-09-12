@@ -899,7 +899,7 @@ qwqr: pvhz + trzt
 blgc: 2
 jcfh: 2
 pvnj: 4
-humn: 3412650897410
+humn: 855
 wvld: 19
 grgv: qzpl - dbtg
 btpw: 10
@@ -1705,7 +1705,7 @@ pplj: jwzt * tlwj
 mwcq: lmjv + fwll
 fmtl: pnjm + rsff
 phjw: 3
-root: gvfh - njlw
+root: gvfh + njlw
 lzpd: 4
 wzsf: jnpc * jjpq
 zjtg: jwpr / znsw
