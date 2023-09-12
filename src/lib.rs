@@ -9,7 +9,14 @@ pub fn solve() {
 
     let r = monkeys.get("root").unwrap().eval(&monkeys);
 
-    println!("{r:?}");
+    // let no_humn = monkeys.get("njlw").unwrap().eval(&monkeys);
+    // let humn = monkeys.get("gvfh").unwrap().eval(&monkeys);
+
+    // println!("NO HUMAN: {}", no_humn);
+    // println!("HUMAN: {humn}");
+
+    // println!("diff: {}", no_humn - humn);
+    println!("{}", r);
 }
 
 #[derive(Debug, Clone)]
@@ -25,7 +32,7 @@ impl Monkey {
 
         let value = line[6..].to_string();
 
-        let kind = match value.parse::<i64>() {
+        let kind = match value.parse::<f64>() {
             Ok(_) => MonkeyType::Value,
             Err(_) => MonkeyType::Operation,
         };
@@ -33,7 +40,12 @@ impl Monkey {
         Monkey { name, kind, value }
     }
 
-    fn eval(&self, monkeys: &HashMap<String, Monkey>) -> i64 {
+    fn eval(&self, monkeys: &HashMap<String, Monkey>) -> f64 {
+        if self.name.as_str() == "humn" {
+            // return 3_412_650_897_410;
+            return 3_412_650_897_405.;
+        }
+
         match self.kind {
             MonkeyType::Value => self.value.parse().unwrap(),
             MonkeyType::Operation => {
