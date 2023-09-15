@@ -1,0 +1,31 @@
+Coord { x: 8, y: 0 }, RIGHT
+WALK(3)
+Coord { x: 9, y: 0 }, RIGHT
+Coord { x: 10, y: 0 }, RIGHT
+ROTATE(R)
+WALK(20)
+Coord { x: 10, y: 1 }, DOWN
+Coord { x: 10, y: 2 }, DOWN
+Coord { x: 10, y: 3 }, DOWN
+Coord { x: 10, y: 4 }, DOWN
+Coord { x: 10, y: 5 }, DOWN
+Coord { x: 10, y: 6 }, DOWN
+ROTATE(R)
+WALK(2)
+Coord { x: 9, y: 6 }, LEFT
+Coord { x: 8, y: 6 }, LEFT
+ROTATE(L)
+WALK(30)
+Coord { x: 8, y: 7 }, DOWN
+Coord { x: 8, y: 8 }, DOWN
+Coord { x: 8, y: 9 }, DOWN
+Coord { x: 8, y: 10 }, DOWN
+Coord { x: 8, y: 11 }, DOWN
+Coord { x: 8, y: 0 }, DOWN
+Coord { x: 8, y: 1 }, DOWN
+ROTATE(R)
+WALK(5)
+Coord { x: 11, y: 1 }, LEFT
+Coord { x: 10, y: 1 }, LEFT
+positon: Coord { x: 10, y: 1 }, facing: LEFT
+Day 22 part 1: 2046
