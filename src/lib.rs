@@ -1,4 +1,6 @@
+#[allow(dead_code)]
 const EXAMPLE: &str = include_str!("../inputs/example.txt");
+#[allow(dead_code)]
 const INPUT: &str = include_str!("../inputs/input.txt");
 
 fn parse_input(input: &str) -> (Grid, Vec<Instruction>) {
@@ -49,7 +51,7 @@ fn parse_commands(commands: &str) -> Vec<Instruction> {
 }
 
 pub fn solve() {
-    let (grid, commands) = parse_input(EXAMPLE);
+    let (grid, commands) = parse_input(INPUT);
     // let (grid, commands) = parse_input(INPUT);
     let mut current = grid.get_starting_position();
     let mut facing = Direction::RIGHT;
@@ -92,6 +94,7 @@ impl Grid {
         Grid { tiles: tiles }
     }
 
+    #[allow(dead_code)]
     fn draw(&self) {
         for l in &self.tiles {
             let mut line = String::new();
@@ -112,12 +115,6 @@ impl Grid {
         let x = self.tiles[0].iter().position(|t| *t != Tile::Empty).unwrap();
 
         (x, 0).into()
-    }
-
-    fn get_line_first_tile(&self, l: usize) -> Tile {
-        let line = &self.tiles[l];
-
-        line.iter().find(|t| **t != Tile::Empty).unwrap().clone()
     }
 
     fn get_line_first_position(&self, l: usize) -> usize {
@@ -174,13 +171,15 @@ impl Grid {
         let line = &self.tiles[coord.y];
         //last tile will never be empty due to how inputs are
         let last_tile_coord = (line.len() - 1, coord.y).into();
+        let last_tile = self.get(last_tile_coord);
         // get x-1 or last tile coord if x -1 < 0
         let new_c = coord.checked_sub((1, 0).into()).unwrap_or(last_tile_coord);
         let tile = line[new_c.x];
 
         match tile {
             Tile::Path => new_c,
-            Tile::Empty => last_tile_coord,
+            Tile::Empty if last_tile == Tile::Path => last_tile_coord,
+            Tile::Empty => coord,
             Tile::Wall => coord,
         }
     }
