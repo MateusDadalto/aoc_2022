@@ -26,8 +26,12 @@ pub fn solve() {
         Direction::East,
     ].iter().cycle();
 
-    for i in 0..10 {
-        let d: Vec<&Direction> = directions_cycle.clone().skip(i%4).take(4).collect();
+    let mut round = 0;
+
+    loop {
+        let mut someone_moved = false;
+
+        let d: Vec<&Direction> = directions_cycle.clone().skip(round%4).take(4).collect();
         // println!("{d:?}");
         let props = first_half(&elves, &d);
         // println!("{:?}", elves);
@@ -37,6 +41,11 @@ pub fn solve() {
         for (prop, candidates) in props {
             // only one elf wants to move to that coord
             if candidates.len() == 1 {
+                // prop can be the same as candidate (elf stays in place)
+                // or prop can be different (elf moves)
+                if prop != candidates[0] {
+                    someone_moved = true;
+                }
                 elves.insert(prop);
                 continue;
             }
@@ -45,9 +54,18 @@ pub fn solve() {
             // we'll keep them where they are
             elves.extend(candidates);
         }
+
+
+        if !someone_moved {
+            break;
+        }
+
+        round += 1;
     }
 
     draw_board(&elves);
+
+    println!("NO ONE MOVED ON ROUND {}!", round + 1);
 }
 
 fn first_half(elves: &HashSet<Coord>, directions: &[&Direction]) -> HashMap<Coord, Vec<Coord>> {
@@ -133,6 +151,7 @@ fn draw_board(elves: &HashSet<Coord>) {
 
         println!("{line}");
     }
+
     println!("///     END    ///");
     println!("Dimensions: {} x {}", max_row - min_row, max_col - min_col);
     println!("Empty grounds: {}", empty);
