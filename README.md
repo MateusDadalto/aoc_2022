@@ -1,4 +1,4 @@
-#Advent of code 2022
+# Advent of code 2022
 Using AOC 2022 to learn a bit more about the basics of RUST
 
 This repository has each day in its respective branch. Why? IDK, felt like it.
